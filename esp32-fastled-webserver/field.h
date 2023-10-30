@@ -104,17 +104,17 @@ void writeFieldsToEEPROM(FieldList fields, uint8_t count) {
   EEPROM.commit();
 }
 
-String setFieldValue(String name, String value, FieldList fields, uint8_t count) {
+String setFieldValue(String name, String value, FieldList fields, uint8_t count, String combinedValue = "") {
   String result;
 
   Field field = getField(name, fields, count);
   if (field.setValue) {
-    if (field.type == ColorFieldType) {
-      String r = webServer.arg("r");
-      String g = webServer.arg("g");
-      String b = webServer.arg("b");
-      String combinedValue = r + "," + g + "," + b;
-      result = field.setValue(combinedValue);
+    if (field.type == ColorFieldType) { // Moved get rgb out due to async server managed by request not by server instance. need to pass combined value instead of making it
+      if(combinedValue.compareTo("") == 0){
+        Serial.println("You passed in an empty colour, shame on you.");
+      }else{
+        result = field.setValue(combinedValue);
+      }
     } else {
       result = field.setValue(value);
     }

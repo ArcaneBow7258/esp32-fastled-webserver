@@ -24,6 +24,7 @@
 
 #include "palettes.h"
 #include "twinkleFox.h"
+#include "mpu.h"
 
 void rainbow()
 {
@@ -251,7 +252,27 @@ void colorWaves()
 {
   colorwaves(leds, NUM_LEDS, currentPalette);
 }
+int deadband = 2000;
+int range = 6000;
+void mpuControl()
+{
+  if (dmpReady){
+    if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
+      //update_ypr();
+      //update_accel(true);
+      update_all(); //both of above squashed into 1 function
+      
+      // Couldn't doget magnittude sicnei t sucks and returns a string and casting would be annoying iwth map()
+      int bright = min(255,
+        max(0,
+          (int)floor(((aaReal.getMagnitude()-deadband) /range)*255))
+        );
+      FastLED.setBrightness(bright);
+      fill_solid(leds, NUM_LEDS, solidColor);
+    }
+  }
 
+}
 typedef void (*Pattern)();
 typedef Pattern PatternList[];
 typedef struct {
@@ -261,6 +282,7 @@ typedef struct {
 typedef PatternAndName PatternAndNameList[];
 
 PatternAndNameList patterns = {
+  { mpuControl, "MPU"},
   { pride,                  "Pride" },
   { colorWaves,             "Color Waves" },
 
