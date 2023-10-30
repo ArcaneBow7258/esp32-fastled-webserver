@@ -165,14 +165,14 @@ void setup() {
   if (String(WiFi.SSID()) != String(wifi_ssid)) {
     WiFi.begin(wifi_ssid, wifi_password);
     while(WiFi.status() != WL_CONNECTED){
-    Serial.print(".");
-    delay(500);
-    timeout -= 1;
-    if (timeout < 0) {
-      Serial.println("Took too long");
-      break;
+      Serial.print(".");
+      delay(500);
+      timeout -= 1;
+      if (timeout < 0) {
+        Serial.println("Took too long");
+        break;
+      }
     }
-  }
     if(WiFi.status() == WL_CONNECTED){
        Serial.printf("IP address at %s\n", WiFi.localIP().toString());
     }
@@ -214,7 +214,6 @@ void loop()
   else {
     // Call the current pattern function once, updating the 'leds' array
     patterns[currentPatternIndex].pattern();
-
     EVERY_N_MILLISECONDS(40) {
       // slowly blend the current palette to the next
       nblendPaletteTowardPalette(currentPalette, targetPalette, 8);
@@ -232,7 +231,6 @@ void loop()
     }
   }
   
-
   // send the 'leds' array out to the actual LED strip
   FastLED.show();
   

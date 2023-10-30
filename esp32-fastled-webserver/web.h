@@ -128,15 +128,15 @@ void setupWeb() {
     digitalWrite(led, 1);
   });
   
-  //Platform io isn't happy i can't use file folders
+  webServer.serveStatic("", SPIFFS, "/home.htm", "max-age=86400");
   webServer.serveStatic("/", SPIFFS, "/home.htm", "max-age=86400");
   webServer.serveStatic("/home", SPIFFS, "/home.htm", "max-age=86400");
-  webServer.serveStatic("/admin", SPIFFS, "/index.htm", "max-age=86400").setAuthentication("alvin","5029692716");// Changed authentication to not let other contorl your led's
+  webServer.serveStatic("/admin", SPIFFS, "/index.htm", "max-age=86400").setAuthentication(auth1,auth2);// Changed authentication to not let other contorl your led's
   webServer.serveStatic("/index.htm", SPIFFS, "/index.htm", "max-age=86400");
   webServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico", "max-age=86400");
   webServer.serveStatic("/css/styles.css", SPIFFS, "/css/styles.css", "max-age=86400");
   webServer.serveStatic("/js/app.js", SPIFFS, "/js/app.js", "max-age=86400");
-   /*
+   
   webServer.serveStatic("/css/ugly.css", SPIFFS, "/css/ugly.css", "max-age=86400");
   webServer.serveStatic("/images/atom196.png", SPIFFS, "/images/atom196.png", "max-age=86400");
   webServer.serveStatic("/images/me.jpg", SPIFFS, "/images/me.jpg", "max-age=86400");
@@ -144,23 +144,33 @@ void setupWeb() {
   webServer.serveStatic("/images/thneed2.jpg", SPIFFS, "/images/thneed2.jpg", "max-age=86400");
   webServer.serveStatic("/images/ugly.jpg", SPIFFS, "/images/ugly.jpg", "max-age=86400");
 
-  // 
- 
+  
+
   webServer.on("/connecttest.txt", HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect("http://logout.net"); });	// windows 11 captive portal workaround
 	webServer.on("/wpad.dat", HTTP_GET, [](AsyncWebServerRequest *request) { request->send(404); });								// Honestly don't understand what this is but a 404 stops win 10 keep calling this repeatedly and panicking the esp32 :)
-  webServer.on("/generate_204",HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect(apIP.toString()); });		   // android captive portal redirect
-	webServer.on("/redirect", HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect(apIP.toString()); });			   // microsoft redirect
-	webServer.on("/hotspot-detect.html", HTTP_GET,  [](AsyncWebServerRequest *request) { request->redirect(apIP.toString()); });  // apple call home
-	webServer.on("/canonical.html", HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect(apIP.toString()); });	   // firefox captive portal call home
+  webServer.on("/generate_204",HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect("/home"); });		   // android captive portal redirect
+	webServer.on("/redirect", HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect("/home"); });			   // microsoft redirect
+	webServer.on("hotspot-detect.html", HTTP_GET,  [](AsyncWebServerRequest *request) { request->redirect("/home"); });  // apple call home
+  webServer.on("netcts.cdn-apple.com", HTTP_GET,  [](AsyncWebServerRequest *request) { request->send(200); });  // apple call home
+  webServer.on("/hotspot-detect.html", HTTP_GET,  [](AsyncWebServerRequest *request) { request->redirect("/home"); });  // apple call home
+  webServer.on("/netcts.cdn-apple.com", HTTP_GET,  [](AsyncWebServerRequest *request) { request->send(200); });  // apple call home
+	webServer.on("/canonical.html", HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect("/home"); });	   // firefox captive portal call home
 	webServer.on("/success.txt", HTTP_GET, [](AsyncWebServerRequest *request) { request->send(200); });					   // firefox captive portal call home
-	webServer.on("/ncsi.txt", HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect(apIP.toString()); });			   // windows call home
-  */
+	webServer.on("/ncsi.txt", HTTP_GET, [](AsyncWebServerRequest *request) { request->redirect("/home"); });			   // windows call home
+  webServer.onNotFound([](AsyncWebServerRequest *request) {
+		request->redirect("/home");
+		Serial.print("onnotfound ");
+		Serial.print(request->host());	// This gives some insight into whatever was being requested on the serial monitor
+		Serial.print(" ");
+		Serial.print(request->url());
+		Serial.print(" sent redirect to /home \n");
+	});
+  webServer.begin();
   Serial.println ( "HTTP server started" );
 }
 
 void handleWeb() {
   static bool webServerStarted = false;
-  Serial.printf("handle web");
   // check for connection
   if ( WiFi.status() == WL_CONNECTED ) {
     if (!webServerStarted) {
