@@ -252,7 +252,7 @@ void colorWaves()
 {
   colorwaves(leds, NUM_LEDS, currentPalette);
 }
-int deadband = 2000;
+int deadband = 1000;
 int range = 6000;
 void mpuControl()
 {

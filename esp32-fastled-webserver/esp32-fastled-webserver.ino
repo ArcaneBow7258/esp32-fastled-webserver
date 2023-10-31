@@ -33,6 +33,7 @@
 #warning "Requires FastLED 3.3 or later; check github for latest code."
 #endif
 
+
 AsyncWebServer webServer(80);
 IPAddress apIP(192, 168, 4, 1);
 IPAddress netMsk(255, 255, 255, 0);
@@ -82,7 +83,8 @@ CRGB leds[NUM_LEDS];
 
 #define MILLI_AMPS         1600 // IMPORTANT: set the max milli-Amps of your power supply (4A = 4000mA)
 #define FRAMES_PER_SECOND  120
-
+static int timeout = 5; // in seconds
+int t = timeout;
 #include "patterns.h"
 
 #include "field.h"
@@ -133,7 +135,7 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
 }
 
 
-int timeout = 60;
+
 void setup() {
   //
   // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -160,15 +162,15 @@ void setup() {
 
   WiFi.mode(WIFI_MODE_APSTA);
   // Moved functionality to a HTTP Requests
-  
+  /*
   Serial.printf("Connecting to %s\n", wifi_ssid);
   if (String(WiFi.SSID()) != String(wifi_ssid)) {
     WiFi.begin(wifi_ssid, wifi_password);
     while(WiFi.status() != WL_CONNECTED){
       Serial.print(".");
-      delay(500);
-      timeout -= 1;
-      if (timeout < 0) {
+      delay(1000);
+      t -= 1;
+      if (t < 0) {
         Serial.println("Took too long");
         break;
       }
@@ -177,7 +179,7 @@ void setup() {
        Serial.printf("IP address at %s\n", WiFi.localIP().toString());
     }
   }
-  
+  */
   // Not that you also need to create new variables in secrets.h named ap_ssid simialr to wifi_ssid
   Serial.printf("Creating AP at %s\n", ap_ssid);
   WiFi.softAPConfig(apIP, apIP, netMsk);
@@ -207,7 +209,7 @@ void loop()
   /* Web Status*/
   dnsServer.processNextRequest();	 // I call this atleast every 10ms in my other projects (can be higher but I haven't tested it for stability)
   
-  handleWeb();
+  //handleWeb();
   if (power == 0) {
     fill_solid(leds, NUM_LEDS, CRGB::Black);
   }

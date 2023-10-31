@@ -26,6 +26,7 @@
   https://github.com/philbowles/ESPAsyncWebServer/issues/
   https://github.com/CDFER/Captive-Portal-ESP32/blob/main/src/main.cpp
 */
+#include "esp_wpa2.h"
 void setupWeb() {
   webServer.on("/all", HTTP_GET, [](AsyncWebServerRequest *request) {
     digitalWrite(led, 0);
@@ -62,22 +63,70 @@ void setupWeb() {
     request->send(200, "text/json", newValue);
     digitalWrite(led, 1);
   });
+   webServer.on("/connect2", HTTP_POST, [](AsyncWebServerRequest *request) {
+    String ssid = "Test";
+    if(request->hasParam("ssid")){
+        ssid =  request->getParam("ssid")->value();
+      }
+    WiFi.disconnect(true);  
+    esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)EAP_ID, strlen(EAP_ID));
+    esp_wifi_sta_wpa2_ent_set_username((uint8_t *)EAP_USERNAME, strlen(EAP_USERNAME));
+    esp_wifi_sta_wpa2_ent_set_password((uint8_t *)EAP_PASSWORD, strlen(EAP_PASSWORD));
+    esp_wifi_sta_wpa2_ent_enable();
+    WiFi.begin(ssid);
+    String json = "[";
+    json += "{\"connected\":\"";
+    json += (WiFi.isConnected()) ? "true" : "false";
+    json += "}]";
+    request->send(200, "text/json", json);
+    });
+  
   webServer.on("/connect", HTTP_POST, [](AsyncWebServerRequest *request) {
     digitalWrite(led, 0);
+    String json = "[";
     if(WiFi.status() != WL_CONNECTED ){
-      String ssid =  request->getParam("ssid")->value();
-      String pass =  request->getParam("pass")->value();
-      Serial.printf("Connecting to %s\n", ssid);
-      if (String(WiFi.SSID()) != String(ssid)) {
-        WiFi.begin(ssid, pass);
+      String ssid =  wifi_ssid;
+      String pass =  wifi_password;
+      /* If we got an arg, replace our values.*/
+      if(request->hasParam("ssid")){
+        ssid =  request->getParam("ssid")->value();
       }
-      String json = "[";
+      if(request->hasParam("pass")){
+        pass =  request->getParam("pass")->value();
+      }
+      if (String(WiFi.SSID()) != String(ssid)) { // if we aren'tcurrently connected
+        WiFi.begin(wifi_ssid, wifi_password);
+        t = timeout;
+        while(WiFi.status() != WL_CONNECTED){
+          Serial.print(".");
+          delay(1000);
+          t -= 1;
+          if (t < 0) {
+            Serial.println("Took too long");
+            break;
+          }
+        }
+        if(WiFi.status() == WL_CONNECTED){
+          Serial.printf("IP address at %s\n", WiFi.localIP().toString());
+        }
+      }
+      else{
+        // already conencted to said network
+        json += "{\"connected\":\"";
+        json += (WiFi.isConnected()) ? "true" : "false";
+        json += "{\"local ip\":\"";
+        json += WiFi.localIP().toString();
+        json += "}]";
+        request->send(409, "text/json", json);
+      }
+    }
+    // check if we timed out or rnot
+    if(WiFi.status() != WL_CONNECTED){
       json += "{\"connected\":\"";
       json += (WiFi.isConnected()) ? "true" : "false";
       json += "}]";
        request->send(200, "text/json", json);
     }else{
-      String json = "[";
       json += "{\"connected\":\"";
       json += (WiFi.isConnected()) ? "true" : "false";
       json += "{\"local ip\":\"";
@@ -175,12 +224,16 @@ void handleWeb() {
   if ( WiFi.status() == WL_CONNECTED ) {
     if (!webServerStarted) {
       // turn off the board's LED when connected to wifi
-      digitalWrite(led, 1);
-      Serial.println();
-      Serial.println("WiFi connected");
-      Serial.print("IP address: ");
-      Serial.println(WiFi.localIP());
-      webServerStarted = true;
+      t = timeout;
+      while(t > 0){
+        digitalWrite(led, 1);
+        Serial.println();
+        Serial.println("WiFi connected");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+        webServerStarted = true;
+        t--;
+      }
       setupWeb();
       //
     }
